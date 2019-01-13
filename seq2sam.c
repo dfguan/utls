@@ -56,6 +56,17 @@ int prtinfo(int type, FILE *stream, const char *format, ...) //type: 3:error 2:w
 	return 0;
 }
 
+int trim_slide(char *s) 
+{
+	if (s) {
+		int sl = strlen(s); 
+		if (sl > 1) {
+			if (s[sl-2] == '/' && (s[sl-1] == '2' || s[sl-1] == '1')) 
+				s[sl-2] = 0;
+		}
+	}
+	return 0; //or maybe return sl - 2/ sl?
+}
 
 
 
@@ -171,11 +182,14 @@ int single2sam(char *fn, char *rg_line, char *out) //
 	
 	while (1) {
 		if (kseq_read(seq) >= 0)  {
-			write_sam(&sts[sam_num], seq, 4);
-			if (++sam_num > sam_num_lim) {
-				n += sam_num;
-				dump_sam_core(fout, sts, sam_num);
-				sam_num = 0;
+			trim_slide(seq->name.s);
+			if (!write_sam(&sts[sam_num], seq, 4)) {
+				sam_num += 1;
+				if (sam_num >= sam_num_lim) {
+					n += sam_num;
+					dump_sam_core(fout, sts, sam_num);
+					sam_num = 0;
+				}
 			}
 		} else {
 			n += sam_num;
@@ -189,7 +203,6 @@ int single2sam(char *fn, char *rg_line, char *out) //
 	release_sam(sts, sam_num_lim);
 	return 0;			
 }
-
 
 //paired end reads to sam format
 int pair2sam(char *fn1, char *fn2, char *rg_line, char *out)
@@ -217,9 +230,19 @@ int pair2sam(char *fn1, char *fn2, char *rg_line, char *out)
 	   	int rtn2 = kseq_read(seq2);
 		if (rtn1 >= 0 && rtn2 >=0) {
 			//compare read name
+			trim_slide(seq1->name.s);
+			trim_slide(seq2->name.s);
+			/*fprintf(stderr, "%s", seq1->name.s);*/
+			/*fprintf(stderr, "%s", seq2->name.s);*/
 			if (!strcmp(seq1->name.s, seq2->name.s)) {
-				if (!write_sam(&sts[sam_num], seq1, 77) && !write_sam(&sts[sam_num+1], seq2,141)) 
+				if (!write_sam(&sts[sam_num], seq1, 77) && !write_sam(&sts[sam_num+1], seq2,141))  {
 					sam_num += 2;
+					if (sam_num >= sam_num_lim) {
+						n += sam_num;
+						dump_sam_core(fout, sts, sam_num);
+						sam_num = 0;
+					}
+				}
 			} else {
 				is_bad_file = 1;	
 				break;
@@ -232,14 +255,9 @@ int pair2sam(char *fn1, char *fn2, char *rg_line, char *out)
 				break;
 		} 		
 		
-		if (++sam_num > sam_num_lim) {
-			n += sam_num_lim;
-			dump_sam_core(fout, sts, sam_num);
-			sam_num = 0;
-		}
 	}
 	if (is_bad_file) prtinfo(2, stderr,"[W::%s] sequence file is corrupted\n", __func__);
-	prtinfo(1, stderr, "[M::%s] process %ld read pairs\n", __func__, n >> 1);
+	prtinfo(1, stderr, "[M::%s] process %ld read pairs\n", __func__, n);
 	kseq_destroy(seq1);
 	kseq_destroy(seq2);
 	gzclose(fp1);
