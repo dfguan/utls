@@ -18,12 +18,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <getopt.h>
+
+#include "color.h"
 
 #include <zlib.h>
 #include "kseq.h"
 KSEQ_INIT(gzFile, gzread)
+
+#define PKG "seq2sam"
 
 typedef struct {
 	char *s;
@@ -34,6 +39,26 @@ typedef struct {
 	str_t qn, tn, ntn, seq, qual, cigar;
 	int flag, pos, maq, tl, npos; 
 }sam_t;
+
+int prtinfo(int type, FILE *stream, const char *format, ...) //type: 3:error 2:warning 1:message otherwise ignore
+{
+	va_list args;
+	va_start (args, format);
+	if (type == 1) 
+		fprintf(stream, COLOR_YELLOW);	
+	 else if (type == 2) 
+		fprintf(stream, COLOR_BLUE);	
+	else if (type == 3)
+		fprintf(stream, COLOR_RED);
+	vfprintf (stream, format, args);
+	if (type > 0) fprintf(stream, COLOR_RESET);	
+	va_end (args);
+	return 0;
+}
+
+
+
+
 
 int cp_str(str_t *t, kstring_t *ks)
 {
@@ -86,10 +111,32 @@ int write_sam(sam_t *st, kseq_t *seq, int flag)
 		return 1;
 }
 
+//from bwa_escape 
+int seq2sam_escape(char *s)
+{
+	char *p, *q;
+	for (p = q = s; *p; ++p) {
+		if (*p == '\\') {
+			++p;
+			if (*p == 't') *q++ = '\t';
+			else if (*p == 'n') *q++ = '\n';
+			else if (*p == 'r') *q++ = '\r';
+			else if (*p == '\\') *q++ = '\\';
+		} else *q++ = *p;
+	}
+	*q = '\0';
+	return 0;
+}
+
+
 
 int dump_hdr(FILE *fout, char *rg_line)
 {
-	fprintf(fout, "@HD\tVN:1.6\n%s\n",rg_line);
+	if (rg_line && rg_line[0] == '@') {
+		seq2sam_escape(rg_line);	
+		fprintf(fout, "@HD\tVN:1.6\n%s\n",rg_line);
+	} else 
+		return 1;
 	return 0;	
 }
 
@@ -104,12 +151,15 @@ int dump_sam_core(FILE *fout, sam_t *sts, int num)
 	return 0;
 }
 
-int se_fast2sam(char *fn, char *rg_line, char *out) // 
+int single2sam(char *fn, char *rg_line, char *out) // 
 {
 	long n = 0, slen = 0, qlen = 0;
 
 	FILE *fout = out && *out ? fopen(out, "w") : stdout;	
-	dump_hdr(fout, rg_line);
+	if (dump_hdr(fout, rg_line)) {
+		prtinfo(3, stderr,"[E::%s] read group header line error\n", __func__);
+		return 1;
+	}
 		
 	int sam_num_lim = 50000;	
 	sam_t *sts = (sam_t *)calloc(sam_num_lim, sizeof(sam_t));
@@ -119,13 +169,21 @@ int se_fast2sam(char *fn, char *rg_line, char *out) //
 	fp = fn && strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
 	kseq_t *seq = kseq_init(fp);
 	
-	while (kseq_read(seq) >= 0) {
-		write_sam(&sts[sam_num], seq, 4);
-		if (++sam_num > sam_num_lim) {
-			dump_sam_core(fout, sts, sam_num_lim);
-			sam_num = 0;
+	while (1) {
+		if (kseq_read(seq) >= 0)  {
+			write_sam(&sts[sam_num], seq, 4);
+			if (++sam_num > sam_num_lim) {
+				n += sam_num;
+				dump_sam_core(fout, sts, sam_num);
+				sam_num = 0;
+			}
+		} else {
+			n += sam_num;
+			if (sam_num) dump_sam_core(fout, sts, sam_num);
+			break;	
 		}
 	}
+	prtinfo(1, stderr, "[M::%s] process %ld reads\n", __func__, n);
 	kseq_destroy(seq);
 	gzclose(fp);
 	release_sam(sts, sam_num_lim);
@@ -134,19 +192,23 @@ int se_fast2sam(char *fn, char *rg_line, char *out) //
 
 
 //paired end reads to sam format
-int pe_fast2sam(char *fn1, char *fn2, char *rg_line, char *out)
+int pair2sam(char *fn1, char *fn2, char *rg_line, char *out)
 {
 	long n = 0;
 
 	FILE *fout = out && *out ? fopen(out, "w") : stdout;	
-	dump_hdr(fout, rg_line);
-		
+	if (dump_hdr(fout, rg_line)) {
+		prtinfo(3, stderr,"[E::%s] read group header line error\n", __func__);
+		return 1;
+	}
+	
 	int sam_num_lim = 50000;	
 	sam_t *sts = (sam_t *)calloc(sam_num_lim, sizeof(sam_t));
 	int sam_num = 0;
 	
 	gzFile fp1, fp2;
 	fp1 = fn1 && strcmp(fn1, "-")? gzopen(fn1, "r") : gzdopen(fileno(stdin), "r");
+	fp2 = fn2 && strcmp(fn2, "-")? gzopen(fn2, "r") : gzdopen(fileno(stdin), "r");
 	kseq_t *seq1 = kseq_init(fp1);
 	kseq_t *seq2 = kseq_init(fp2);	
 	int is_bad_file = 0;
@@ -162,16 +224,22 @@ int pe_fast2sam(char *fn1, char *fn2, char *rg_line, char *out)
 				is_bad_file = 1;	
 				break;
 			} 
-		} else if (rtn1 * rtn2 < 0) { //a better way to check both numbers are less than zero?
-			is_bad_file = 1;
-			break;
-		} else 
-			break;
+		} else {
+			if (sam_num) dump_sam_core(fout, sts, sam_num);
+			n += sam_num;
+			if (rtn1 * rtn2 < 0)  //a better way to check both numbers are less than zero?
+				is_bad_file = 1;
+				break;
+		} 		
+		
 		if (++sam_num > sam_num_lim) {
-			dump_sam_core(fout, sts, sam_num_lim);
+			n += sam_num_lim;
+			dump_sam_core(fout, sts, sam_num);
 			sam_num = 0;
 		}
 	}
+	if (is_bad_file) prtinfo(2, stderr,"[W::%s] sequence file is corrupted\n", __func__);
+	prtinfo(1, stderr, "[M::%s] process %ld read pairs\n", __func__, n >> 1);
 	kseq_destroy(seq1);
 	kseq_destroy(seq2);
 	gzclose(fp1);
@@ -204,33 +272,32 @@ int main(int argc, char *argv[])
 				rg_line = optarg; 
 				break;
 			default:
-				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
-	/*help:	*/
-				fprintf(stderr, "\nUsage: fast2sam [options] ...\n");
+				if (c != 'h') prtinfo(3, stderr, "[E::%s] undefined option %c\n", __func__, c);
+	help:	
+				fprintf(stderr, "\nUsage: %s [options] -1 <FASTA/Q>\n", PKG);
 				fprintf(stderr, "Options:\n");	
 				fprintf(stderr, "         -o    STR      output file [stdout]\n");	
 				fprintf(stderr, "         -1    STR      read1 file\n");
 				fprintf(stderr, "         -2    STR      read2 file\n");	
-				fprintf(stderr, "         -r    STR      read group header line such as \'@RG\tID:foo\tSM:bar\'\n");
+				fprintf(stderr, "         -r    STR      read group header line such as \'@RG\\tID:foo\\tSM:bar\'\n");
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
 	}
 	
-	if (rg_line) { fprintf(stderr, "read group can not be ignored, process exit"); return 1;}
-
 	if (fn1 && fn2) {
-		fprintf(stderr, "Program starts\n");	
-		pe_fast2sam(fn1, fn2, rg_line, out);
-		fprintf(stderr, "Program ends\n");	
+		prtinfo(1, stderr, "[M::%s] Program starts\n", __func__);	
+		pair2sam(fn1, fn2, rg_line, out);
+		prtinfo(1, stderr, "[M::%s] Program ends\n", __func__);	
 		return 0;	
 	} else if (fn1) {
-		fprintf(stderr, "Program starts\n");	
-		se_fast2sam(fn1, rg_line, out);
-		fprintf(stderr, "Program ends\n");	
+		prtinfo(1, stderr, "[M::%s] Program starts\n", __func__);	
+		single2sam(fn1, rg_line, out);
+		prtinfo(1, stderr, "[M::%s] Program ends\n", __func__);	
 		return 0;	
 	} else {
-		fprintf(stderr, "require at least one sequencing file\n");
+		prtinfo(3, stderr, "[E::%s] require at least one sequencing file\n", __func__);
+		goto help;
 		return 1;
 	}	
 

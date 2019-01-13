@@ -2,13 +2,13 @@ CC      =  gcc
 CFLAGS  =  -g -Wall   
 LDFLAGS = -lz
 
-PROG = fast2sam  
+PROG = seq2sam  
 
 .SUFFIXS:.c .o
 
 all:$(PROG)
 
-fast2sam: fast2sam.o 
+seq2sam: seq2sam.o 
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 .c .o:
