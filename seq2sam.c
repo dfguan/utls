@@ -257,7 +257,7 @@ int pair2sam(char *fn1, char *fn2, char *rg_line, char *out)
 		
 	}
 	if (is_bad_file) prtinfo(2, stderr,"[W::%s] sequence file is corrupted\n", __func__);
-	prtinfo(1, stderr, "[M::%s] process %ld read pairs\n", __func__, n);
+	prtinfo(1, stderr, "[M::%s] process %ld read pairs\n", __func__, n >> 1);
 	kseq_destroy(seq1);
 	kseq_destroy(seq2);
 	gzclose(fp1);
