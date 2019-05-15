@@ -1,4 +1,4 @@
-# utilities
+# Utilities
 - seq2sam.c: convert single-end or paired-end reads from fastq/a format into bam format, users can define sample id and read id. 
 
 # Installation
