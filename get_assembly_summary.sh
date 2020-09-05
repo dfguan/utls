@@ -50,7 +50,7 @@ if [ ! -f "rankedlineage.dmp" ]
 then
 	if [ ! -f "new_taxdump.tar.gz" ]
 	then
-		wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz
+		wget -c -N https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz
 	fi
 	tar zvxf  new_taxdump.tar.gz rankedlineage.dmp
 fi
@@ -66,5 +66,5 @@ if [ $? -eq 0 ]
 then
 	echo "Command runs successfully"
 else
-	echo "An error occured, contact Dengfeng"
+	echo "An error occured, please contact Dengfeng"
 fi
