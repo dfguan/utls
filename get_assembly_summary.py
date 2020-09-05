@@ -36,7 +36,7 @@ def get_sN50_others(asmid):
     m = re.search("<dt>BioProject: </dt><dd><a href=(.+?)>(.+?)</a></dd><dt>", res.text)
     if m is not None:
         a[3] = m.group(2)
-    print (a)
+    # print (a)
     return a
 
 def get_ptname(taxid):
