@@ -19,10 +19,14 @@ def load_tax_tree(treepath):
 
 def get_sN50_others(asmid):
     asmurl = "https://www.ncbi.nlm.nih.gov/assembly/{}".format(asmid)
-    res = requests.get(asmurl)
-    # print (res.text)
-    m = re.search("<td>Scaffold N50</td><td class=\"align_r\">(.+?)</td>", res.text)
+    time.sleep(5)
     a = ["NA", "NA", "NA", "NA"]
+    try:
+        res = requests.get(asmurl)
+    except: 
+        return a
+        # print (res.text)
+    m = re.search("<td>Scaffold N50</td><td class=\"align_r\">(.+?)</td>", res.text)
     if m is not None:
         a[0] = m.group(1)
     m = re.search("<dt>Submitter: </dt><dd>(.+?)</dd>", res.text)
@@ -35,7 +39,7 @@ def get_sN50_others(asmid):
     if m is not None:
         a[3] = m.group(2)
     # print (a)
-    # print ("Extracted detailed assembly information from {}".format(asmurl), file=sys.stderr)
+    print ("Extracted detailed assembly information from {}".format(asmurl), file=sys.stderr)
     return a
 
 def get_ptname(taxid):
@@ -127,7 +131,7 @@ def parse_asminfo2(url, tax_tree):
             print ("\t".join(attr))
             counter += 1
             if counter % onep_step == 0:
-                print ("Finished processing {0} ({1:.2}%) records".format(counter, counter/n_records*100), file=sys.stderr)
+                print ("Finished processing {0} records".format(counter, counter/n_records*100), file=sys.stderr)
     else:
         print ("No resource found")
         return 1
