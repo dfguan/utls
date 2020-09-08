@@ -18,9 +18,7 @@ def load_tax_tree(treepath):
     return tax_tree 
 
 def get_sN50_others(asmid):
-    time.sleep(13)
     asmurl = "https://www.ncbi.nlm.nih.gov/assembly/{}".format(asmid)
-    # print (asmurl)
     res = requests.get(asmurl)
     # print (res.text)
     m = re.search("<td>Scaffold N50</td><td class=\"align_r\">(.+?)</td>", res.text)
@@ -37,6 +35,7 @@ def get_sN50_others(asmid):
     if m is not None:
         a[3] = m.group(2)
     # print (a)
+    # print ("Extracted detailed assembly information from {}".format(asmurl), file=sys.stderr)
     return a
 
 def get_ptname(taxid):
@@ -65,6 +64,7 @@ def parse_asminfo2(url, tax_tree):
 
     res = requests.get(url)
     if res is not None:
+        print ("Get taxonomy list, start analyzing...", file=sys.stderr)
     # with open(res.json) as f:
         res_dict = json.loads(res.text)
         asm_sumy = None
@@ -78,6 +78,10 @@ def parse_asminfo2(url, tax_tree):
         # print header
         hdr = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}".format("Class", "Order", "Family","Accession ID",  "Latin name", "Common name", "Assembly level", "Submission date", "Contig N50", "Genome size", "Annotated", "Taxonomy ID", "Scaffold N50", "Submitter", "Sequencing technology", "Project ID")
         print (hdr)
+        n_records = len(asm_sumy)
+        onep_step = int(0.01 * n_records)
+        print ("There are {} records in total".format(n_records), file=sys.stderr)
+        counter = 0
         for ele in asm_sumy:
             attr = []
             if "org" in ele and "tax_id" in ele["org"]:
@@ -121,6 +125,9 @@ def parse_asminfo2(url, tax_tree):
             # most the last element to the first
             # attr[0] = attr[-1]
             print ("\t".join(attr))
+            counter += 1
+            if counter % onep_step == 0:
+                print ("Finished processing {0} ({1:.2}%) records".format(counter, counter/n_records*100), file=sys.stderr)
     else:
         print ("No resource found")
         return 1
