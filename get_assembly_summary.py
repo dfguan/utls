@@ -39,6 +39,7 @@ def get_sN50_others(asmid):
     if m is not None:
         a[3] = m.group(2)
     m = re.search("<dt>BioSample: </dt><dd><a href=(.+?)>(.+?)</a></dd>", res.text)
+    if m is not None:
         a[4] = m.group(2)
     # print (a)
     print ("Extracted detailed assembly information from {}".format(asmurl), file=sys.stderr)
