@@ -84,6 +84,8 @@ def parse_asminfo2(url, tax_tree):
         print (hdr)
         n_records = len(asm_sumy)
         onep_step = int(0.01 * n_records)
+        if one_step == 0:
+            one_step += 1
         print ("There are {} records in total".format(n_records), file=sys.stderr)
         counter = 0
         for ele in asm_sumy:
