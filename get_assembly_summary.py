@@ -20,7 +20,7 @@ def load_tax_tree(treepath):
 def get_sN50_others(asmid):
     asmurl = "https://www.ncbi.nlm.nih.gov/assembly/{}".format(asmid)
     time.sleep(5)
-    a = ["NA", "NA", "NA", "NA"]
+    a = ["NA", "NA", "NA", "NA", "NA"]
     try:
         res = requests.get(asmurl)
     except: 
@@ -38,6 +38,8 @@ def get_sN50_others(asmid):
     m = re.search("<dt>BioProject: </dt><dd><a href=(.+?)>(.+?)</a></dd><dt>", res.text)
     if m is not None:
         a[3] = m.group(2)
+    m = re.search("<dt>BioSample: </dt><dd><a href=(.+?)>(.+?)</a></dd>", res.text)
+        a[4] = m.group(2)
     # print (a)
     print ("Extracted detailed assembly information from {}".format(asmurl), file=sys.stderr)
     return a
@@ -80,7 +82,7 @@ def parse_asminfo2(url, tax_tree):
 
         # {'assembly_accession': 'GCA_000005465.1', 'display_name': 'BGIAF', 'org': {'tax_id': '9606', 'sci_name': 'Homo sapiens', 'common_name': 'human', 'sex': 'male', 'rank': 'SPECIES', 'parent_tax_id': '9605', 'assembly_counts': {'node': 128, 'subtree': 128}, 'key': '9606', 'title': 'human'}, 'chromosomes': ['Un'], 'assembly_level': 'Scaffold', 'submission_date': '2010-06-21', 'contig_n50': 887, 'estimated_size': '652893711', 'seq_length': '2676008911'}
         # print header
-        hdr = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}".format("Class", "Order", "Family","Accession ID",  "Latin name", "Common name", "Assembly level", "Submission date", "Contig N50", "Genome size", "Annotated", "Taxonomy ID", "Scaffold N50", "Submitter", "Sequencing technology", "Project ID")
+        hdr = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}".format("Class", "Order", "Family","Accession ID",  "Latin name", "Common name", "Assembly level", "Submission date", "Contig N50", "Genome size", "Annotated", "Scaffold N50", "Submitter", "Sequencing technology", "Project ID", "Sample ID")
         print (hdr)
         n_records = len(asm_sumy)
         onep_step = int(0.01 * n_records)
