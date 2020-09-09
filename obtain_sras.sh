@@ -12,13 +12,13 @@ ARGUMENT
  <input>                The list of assembly information delimited by tab         
  
 OPTIONS
- -p <project_id>        The field number of project id                     [default: 15] 
+ -p <project_id>        The field number of project id                     [default: 14] 
  -s <species_name>      The field number of species name                   [default: 5]
  -g <asmsum.txt>        Directory of assembly_summary_{genbank,refseq}.txt [default: .] 
  -v                     Verbose mode
 "
 sfn=5
-pfn=15
+pfn=14
 asmdir="."
 #header=1
 outd="."
