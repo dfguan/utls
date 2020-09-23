@@ -25,14 +25,18 @@ sfn=5
 pfn=16
 asmdir="."
 header=1
+rml=0
 outd="."
-while getopts "a:O:s:g:p:h" OPT "$@"; do
+
+while getopts "a:O:s:g:p:fh" OPT "$@"; do
     case $OPT in
         a) afn="$OPTARG"
 			;;
 		s) sfn="$OPTARG"
 			;;
 		p) pfn="$OPTARG"
+			;;
+		f) rml=1
 			;;
         g) asmdir="$OPTARG"
 			;;
@@ -107,7 +111,14 @@ do
 		mkdir -p $outputd
 		esearch -db sra -query $samid  | efetch -format runinfo | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist 
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
-		obs
+		obsutil cp -vmd5 -u -r -f obs://nextomics-customer/WHWLZ-201906006A/genome_diversity  $outd/$spn		
+		if [ $rml -eq 1 ]
+		then
+			if [ -z $outd -a -z $spn ] 
+			then
+				rm -rf $outd/$spn
+			fi
+		fi
 	fi		
 done < $outd/aid_spn_sid_list
 
