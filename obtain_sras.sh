@@ -2,10 +2,10 @@
 # File              : obtain_sras.sh
 # Author            : Dengfeng Guan <dfguan9@gmail.com>
 # Date              : 22.09.2020
-# Last Modified Date: 22.09.2020
+# Last Modified Date: 23.09.2020
 # Last Modified By  : Dengfeng Guan <dfguan9@gmail.com>
 # Description: obtain sras from a given assembly list containing project id
-set -x
+#set -x
 USAGE="
 `basename $0` [<OPTIONS>] <ARGUMENT>
 
