@@ -11,7 +11,6 @@ ARGUMENT
  <input>                The list of assembly information delimited by tab         
  
 OPTIONS
- -h <has_header>        Has a header, 1 for yes, 0 for no                  [default: 1]
  -a <accession_ID>      The field number of accession id                   [default: 4] 
  -s <species_name>      The field number of species name                   [default: 5]
  -p <sample_id>         The field number of sample id                      [default: 5]
@@ -89,12 +88,12 @@ cut -f$afn,$sfn,$pfn -d$'\t'  $asmfl | grep ^GC | sed 's/ /_/g' > $outd/aid_spn_
 while read -r ga spn samid
 do 
 	gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_refseq.txt | cut -d$'\t' -f20`	
+	# use -z to check if the string is empty 
 	[ -z "$gaftppath" ] && gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_genbank.txt | cut -d$'\t' -f20`	
 	if [ -z "$gaftppath" ]
 	then
 		echo "Warning: we can not find accession $ga, it may have been deleted on NCBI server"		
 	else
-
 		mkdir -p $outd/$spn
 		gan=`basename $gaftppath`
 		echo Now start downloading $gaftppath
@@ -102,6 +101,10 @@ do
 		#wget -c -o $outd/$spn/"$spn".wget.log   -O $outd/$spn/"$spn"."$ga".gtf.gz "$gaftppath"/"$subdir"_genomic.gtf.gz 
 		#wget -c -o $outd/$spn/"$spn".wget.log   -O $outd/$spn/"$spn"."$ga".gff.gz "$gaftppath"/"$subdir"_genomic.gff.gz 
 		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
+		if [ $? -ne 0 ]
+		then 
+			echo "Failed to download assembly for $spn"
+		fi
 		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gtf.gz 
 		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gff.gz 
 		[ -s $outd/$spn/"$gan"_genomic.gtf.gz ] || rm -f $outd/$spn/"$gan"_genomic.gtf.gz 
@@ -111,15 +114,20 @@ do
 		mkdir -p $outputd
 		esearch -db sra -query $samid  | efetch -format runinfo | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist 
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
-		obsutil cp -vmd5 -u -r -f obs://nextomics-customer/WHWLZ-201906006A/genome_diversity  $outd/$spn		
-		if [ $rml -eq 1 ]
+		if [ $? -eq 0 ]
 		then
-			if [ -z $outd -a -z $spn ] 
+			obsutil cp -vmd5 -u -r -f obs://nextomics-customer/WHWLZ-201906006A/genome_diversity  $outd/$spn		
+			if [ $rml -eq 1 ]
 			then
-				rm -rf $outd/$spn
+				if [ -z $spn ] 
+				then
+					rm -rf $outd/$spn
+				fi
 			fi
-		fi
-	fi		
+		else
+			echo "Failed to download SRAs for $spn" 
+		fi		
+	fi
 done < $outd/aid_spn_sid_list
 
 
