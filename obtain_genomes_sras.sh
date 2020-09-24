@@ -116,8 +116,8 @@ do
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
 		if [ $? -eq 0 ]
 		then
-			obsutil cp -vmd5 -u -r -f obs://nextomics-customer/WHWLZ-201906006A/genome_diversity  $outd/$spn		
-			if [ $rml -eq 1 ]
+			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity			  	
+			if [ $? -eq 0 -a $rml -eq 1 ]
 			then
 				if [ -z $spn ] 
 				then
