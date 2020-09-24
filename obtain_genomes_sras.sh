@@ -4,6 +4,7 @@
 # Date              : 23.09.2020
 # Last Modified Date: 23.09.2020
 # Last Modified By  : Dengfeng Guan <dfguan9@gmail.com>
+set -x
 USAGE="
 `basename $0` [<OPTIONS>] <ARGUMENT>
 
@@ -100,26 +101,27 @@ do
 		#wget -c -o $outd/$spn/"$spn".wget.log   -O $outd/$spn/"$ga".fna.gz "$gaftppath"/"$subdir"_genomic.fna.gz 
 		#wget -c -o $outd/$spn/"$spn".wget.log   -O $outd/$spn/"$spn"."$ga".gtf.gz "$gaftppath"/"$subdir"_genomic.gtf.gz 
 		#wget -c -o $outd/$spn/"$spn".wget.log   -O $outd/$spn/"$spn"."$ga".gff.gz "$gaftppath"/"$subdir"_genomic.gff.gz 
-		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
+		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
 		if [ $? -ne 0 ]
 		then 
 			echo "Failed to download assembly for $spn"
 		fi
-		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gtf.gz 
-		wget -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gff.gz 
+		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gtf.gz 
+		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gff.gz 
 		[ -s $outd/$spn/"$gan"_genomic.gtf.gz ] || rm -f $outd/$spn/"$gan"_genomic.gtf.gz 
 		[ -s $outd/$spn/"$gan"_genomic.gff.gz ] || rm -f $outd/$spn/"$gan"_genomic.gff.gz 
 
 		outputd=$outd/$spn/SRAs
 		mkdir -p $outputd
 		esearch -db sra -query $samid  | efetch -format runinfo | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist 
+		echo "Now start downloading SRAs..."
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
 		if [ $? -eq 0 ]
 		then
-			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity			  	
-			if [ $? -eq 0 -a $rml -eq 1 ]
+			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity			
+			if [ $? -eq 0 ] && [ $rml -eq 1 ]
 			then
-				if [ -z $spn ] 
+				if [ ! -z $spn ] 
 				then
 					rm -rf $outd/$spn
 				fi
