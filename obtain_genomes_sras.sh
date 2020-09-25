@@ -89,52 +89,61 @@ cut -f$afn,$sfn,$pfn -d$'\t'  $asmfl | grep ^GC | sed 's/ /_/g' > $outd/aid_spn_
 while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
-	if [ -f "$outd"/."$spn".done ]
+	if [ -f "$outd"/."$spn".asm.done ]
 	then
-		echo "already downloaded $spn, skipped"
-		continue
-	fi	
-	gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_refseq.txt | cut -d$'\t' -f20`	
-	# use -z to check if the string is empty 
-	[ -z "$gaftppath" ] && gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_genbank.txt | cut -d$'\t' -f20`	
-	if [ -z "$gaftppath" ]
-	then
-		echo "Warning: we can not find accession $ga, it may have been deleted on NCBI server"		
+		echo "already downloaded genome for $spn, skipped"
 	else
-		mkdir -p $outd/$spn
-		gan=`basename $gaftppath`
-		echo Now start downloading $gaftppath
-		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
-		if [ $? -ne 0 ]
-		then 
-			echo "Failed to download assembly for $spn"
-			continue
-		fi
-		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gtf.gz 
-		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gff.gz 
-		[ -s $outd/$spn/"$gan"_genomic.gtf.gz ] || rm -f $outd/$spn/"$gan"_genomic.gtf.gz 
-		[ -s $outd/$spn/"$gan"_genomic.gff.gz ] || rm -f $outd/$spn/"$gan"_genomic.gff.gz 
-
+		echo "Start step 1, downloading the assembly for $spn"
+		gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_refseq.txt | cut -d$'\t' -f20`	
+		# use -z to check if the string is empty 
+		[ -z "$gaftppath" ] && gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_genbank.txt | cut -d$'\t' -f20`	
+		if [ -z "$gaftppath" ]
+		then
+			echo "Warning: we can not find accession $ga, it may have been deleted on NCBI server"		
+		else
+			mkdir -p $outd/$spn
+			gan=`basename $gaftppath`
+			echo Now start downloading $gaftppath
+			wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
+			if [ $? -eq 0 ]
+			then 
+				touch $outd/."$spn".asm.done
+			else
+				echo "Failed to download assembly for $spn"
+			fi
+		fi	
+	fi
+	if [ -f "$outd"/.$spn.sra.done ]
+	then
+		echo "already downloaded sras for $spn, skipped"
+	else
+		echo "Start step 2, downloading SRAs for $spn"
 		outputd=$outd/$spn/SRAs
 		mkdir -p $outputd
 		# be careful with esearch who is reading from stdin
 		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
-		echo "Now start downloading SRAs..."
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
 		if [ $? -eq 0 ]
 		then
-			touch "$outd"/."$spn".done
-			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
-			if [ $? -eq 0 ] && [ $rml -eq 1 ]
-			then
-				if [ ! -z $spn ] 
-				then
-					rm -rf $outd/$spn
-				fi
-			fi
+			touch "$outd"/."$spn".sra.done
 		else
 			echo "Failed to download SRAs for $spn" 
 		fi		
+	fi
+	if [ -f "$outd"/.$spn.upload.done ]
+	then
+		echo "Already uploaded data for $spn, skip step 3"
+	else
+		echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
+		obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
+		if [ $? -eq 0 ] 
+		then
+			touch $outd/.$spn.upload.done
+			if [ $rml -eq 1 ] && [ ! -z $spn ] 
+			then
+				rm -rf $outd/$spn
+			fi
+		fi
 	fi
 done < $outd/aid_spn_sid_list
 
