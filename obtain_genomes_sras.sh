@@ -16,7 +16,9 @@ OPTIONS
  -s <species_name>      The field number of species name                   [default: 5]
  -p <sample_id>         The field number of sample id                      [default: 5]
  -g <asmsum.txt>        Directory of assembly_summary_{genbank,refseq}.txt [default: .] 
- -O <output_directory>  Directory of output assemblies [default: .] 
+ -f <step number>       Three bits to force to run the three steps         [default: 0]
+ -O <output_directory>  Directory of output assemblies                     [default: .] 
+ -r                     Remove directory for the species                   [default: FALSE]
  -v                     Verbose mode
 "
 
@@ -25,10 +27,11 @@ sfn=5
 pfn=16
 asmdir="."
 header=1
+fstp=0
 rml=0
 outdir="."
 
-while getopts "a:O:s:g:p:fh" OPT "$@"; do
+while getopts "a:O:s:g:p:f:rh" OPT "$@"; do
     case $OPT in
         a) afn="$OPTARG"
 			;;
@@ -36,7 +39,9 @@ while getopts "a:O:s:g:p:fh" OPT "$@"; do
 			;;
 		p) pfn="$OPTARG"
 			;;
-		f) rml=1
+		f) fstp="$OPTARG"
+			;;
+		r) rml=1
 			;;
         g) asmdir="$OPTARG"
 			;;
@@ -58,6 +63,7 @@ shift $((OPTIND-1))
 
 asmfl=$1
 outd=`readlink -f $outdir`
+
 if [ ! -f $asmdir/"assembly_summary_genbank.txt" ]
 then
 	echo "assembly_summary_genbank.txt is not found under "$asmdir", now downloading......" 
@@ -85,11 +91,14 @@ fi
 #else
 cut -f$afn,$sfn,$pfn -d$'\t'  $asmfl | grep ^GC | sed 's/ /_/g' > $outd/aid_spn_sid_list
 #fi
+stp1=$((fstp & 0x1))
+stp2=$((fstp & 0x2))
+stp3=$((fstp & 0x3))
 
 while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
-	if [ -f "$outd"/."$spn".asm.done ]
+	if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
 	then
 		echo "already downloaded genome for $spn, skipped"
 	else
@@ -113,7 +122,7 @@ do
 			fi
 		fi	
 	fi
-	if [ -f "$outd"/.$spn.sra.done ]
+	if [ -f "$outd"/.$spn.sra.done ] && [ $stp2 -eq 0 ]
 	then
 		echo "already downloaded sras for $spn, skipped"
 	else
@@ -130,7 +139,7 @@ do
 			echo "Failed to download SRAs for $spn" 
 		fi		
 	fi
-	if [ -f "$outd"/.$spn.upload.done ]
+	if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
 	then
 		echo "Already uploaded data for $spn, skip step 3"
 	else
