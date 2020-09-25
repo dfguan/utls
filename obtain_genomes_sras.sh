@@ -108,6 +108,7 @@ do
 		if [ $? -ne 0 ]
 		then 
 			echo "Failed to download assembly for $spn"
+			continue
 		fi
 		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gtf.gz 
 		wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.gff.gz 
@@ -117,11 +118,12 @@ do
 		outputd=$outd/$spn/SRAs
 		mkdir -p $outputd
 		# be careful with esearch who is reading from stdin
-		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
 		echo "Now start downloading SRAs..."
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
 		if [ $? -eq 0 ]
 		then
+			touch "$outd"/."$spn".done
 			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
 			if [ $? -eq 0 ] && [ $rml -eq 1 ]
 			then
