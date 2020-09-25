@@ -26,7 +26,7 @@ pfn=16
 asmdir="."
 header=1
 rml=0
-outd="."
+outdir="."
 
 while getopts "a:O:s:g:p:fh" OPT "$@"; do
     case $OPT in
@@ -42,7 +42,7 @@ while getopts "a:O:s:g:p:fh" OPT "$@"; do
 			;;
         h) header=0
 			;;
-        O) outd="$OPTARG"
+        O) outdir="$OPTARG"
 			;;
         \?) echo "Invalid option: -$OPTARG" >&2 
             exit 1 
@@ -57,7 +57,7 @@ shift $((OPTIND-1))
 [[ $# -eq 1 ]] || { printf "$USAGE" >&2 && exit 1; }
 
 asmfl=$1
-
+outd=`readlink -f $outdir`
 if [ ! -f $asmdir/"assembly_summary_genbank.txt" ]
 then
 	echo "assembly_summary_genbank.txt is not found under "$asmdir", now downloading......" 
