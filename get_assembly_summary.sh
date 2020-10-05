@@ -28,7 +28,7 @@ while getopts "t:s:n:" OPT "$@"; do
 		   usetax=0
 		   exturl="/assembly_descriptors/organism/${species}"
 			;;
-		s) nrec="$OPTARG"
+		n) nrec="$OPTARG"
 			;;
         \?) echo "Invalid option: -$OPTARG" >&2 
             exit 1 
