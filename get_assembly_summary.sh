@@ -12,10 +12,11 @@ ARGUMENT
 OPTIONS
  -t <taxids>            obtain the assembly summary for the taxid given.
  -s <species_name>      obtain the assembly summary for the species given.
+ -n <number_of_records> obtain n records [default: -1 (all records)].
  -v                     Verbose mode
 "
-
-while getopts "t:s:" OPT "$@"; do
+nrec=-1
+while getopts "t:s:n:" OPT "$@"; do
     case $OPT in
         t) taxid="$OPTARG"
 		   value=$taxid
@@ -26,6 +27,8 @@ while getopts "t:s:" OPT "$@"; do
 		   value="$species"
 		   usetax=0
 		   exturl="/assembly_descriptors/organism/${species}"
+			;;
+		s) nrec="$OPTARG"
 			;;
         \?) echo "Invalid option: -$OPTARG" >&2 
             exit 1 
@@ -56,9 +59,9 @@ then
 fi
 if [ $usetax -eq 1 ]
 then
-	python3 get_assembly_summary.py -t $value > $out
+	python3 get_assembly_summary.py -t $value -n $nrec > $out
 else 
-	python3 get_assembly_summary.py -s "$value" > $out
+	python3 get_assembly_summary.py -s "$value" -n $nrec > $out
 fi
 #cut -f8 $value.asm.tsv | xargs -n1 -I{} grep -w ^{} rankedlineage.dmp | awk -F'|' '{print $4"\t"$5"\t"$6}' | awk '{print $1"\t"$2"\t"$3}' > $value.lin.tsv
 #paste $value.lin.tsv $value.asm.tsv > $out
