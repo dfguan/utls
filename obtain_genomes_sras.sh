@@ -17,6 +17,7 @@ OPTIONS
  -p <sample_id>         The field number of sample id                      [default: 5]
  -g <asmsum.txt>        Directory of assembly_summary_{genbank,refseq}.txt [default: .] 
  -f <step number>       Three bits to force to run the three steps         [default: 0]
+ -S <step number>       Three bits to force to skip the steps              [default: 0]
  -O <output_directory>  Directory of output assemblies                     [default: .] 
  -r                     Remove directory for the species                   [default: FALSE]
  -v                     Verbose mode
@@ -28,6 +29,7 @@ pfn=16
 asmdir="."
 header=1
 fstp=0
+sstp=0
 rml=0
 outdir="."
 
@@ -40,6 +42,8 @@ while getopts "a:O:s:g:p:f:rh" OPT "$@"; do
 		p) pfn="$OPTARG"
 			;;
 		f) fstp="$OPTARG"
+			;;
+		S) sstp="$OPTARG"
 			;;
 		r) rml=1
 			;;
@@ -63,6 +67,28 @@ shift $((OPTIND-1))
 
 asmfl=$1
 outd=`readlink -f $outdir`
+
+stp1=$((fstp & 0x1))
+stp2=$((fstp & 0x2))
+stp3=$((fstp & 0x3))
+
+sstp1=$((sstp & 0x1))
+sstp2=$((sstp & 0x2))
+sstp3=$((sstp & 0x3))
+
+if [ $stp1 -eq 1 ] && [ $sstp1 -eq 1 ]
+then
+	echo "Not allow to force and skip step 1 at the same time, exiting"
+	exit 1
+elif [ $stp2 -eq 1 ] && [ $sstp2 -eq 1 ]
+then
+	echo "Not allow to force and skip step 2 at the same time, exiting"
+	exit 1
+elif [ $stp3 -eq 1 ] && [ $sstp3 -eq 1 ]
+then
+	echo "Not allow to force and skip step 2 at the same time, exiting"
+	exit 1
+fi
 
 if [ ! -f $asmdir/"assembly_summary_genbank.txt" ]
 then
@@ -91,68 +117,84 @@ fi
 #else
 cut -f$afn,$sfn,$pfn -d$'\t'  $asmfl | grep ^GC | sed 's/ /_/g' > $outd/aid_spn_sid_list
 #fi
-stp1=$((fstp & 0x1))
-stp2=$((fstp & 0x2))
-stp3=$((fstp & 0x3))
+
+
 
 while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
-	if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
+	if [ $sstp1 -ne 1 ]
 	then
-		echo "already downloaded genome for $spn, skipped"
-	else
-		echo "Start step 1, downloading the assembly for $spn"
-		gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_refseq.txt | cut -d$'\t' -f20`	
-		# use -z to check if the string is empty 
-		[ -z "$gaftppath" ] && gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_genbank.txt | cut -d$'\t' -f20`	
-		if [ -z "$gaftppath" ]
+		if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
 		then
-			echo "Warning: we can not find accession $ga, it may have been deleted on NCBI server"		
+			echo "already downloaded genome for $spn, skipped"
 		else
-			mkdir -p $outd/$spn
-			gan=`basename $gaftppath`
-			echo Now start downloading $gaftppath
-			wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
-			if [ $? -eq 0 ]
-			then 
-				touch $outd/."$spn".asm.done
-			else
-				echo "Failed to download assembly for $spn"
-			fi
-		fi	
-	fi
-	if [ -f "$outd"/.$spn.sra.done ] && [ $stp2 -eq 0 ]
-	then
-		echo "already downloaded sras for $spn, skipped"
-	else
-		echo "Start step 2, downloading SRAs for $spn"
-		outputd=$outd/$spn/SRAs
-		mkdir -p $outputd
-		# be careful with esearch who is reading from stdin
-		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
-		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
-		if [ $? -eq 0 ]
-		then
-			touch "$outd"/."$spn".sra.done
-		else
-			echo "Failed to download SRAs for $spn" 
-		fi		
-	fi
-	if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
-	then
-		echo "Already uploaded data for $spn, skip step 3"
-	else
-		echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
-		obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
-		if [ $? -eq 0 ] 
-		then
-			touch $outd/.$spn.upload.done
-			if [ $rml -eq 1 ] && [ ! -z $spn ] 
+			echo "Start step 1, downloading the assembly for $spn"
+			gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_refseq.txt | cut -d$'\t' -f20`	
+			# use -z to check if the string is empty 
+			[ -z "$gaftppath" ] && gaftppath=`grep -w ^$ga "$asmdir"/assembly_summary_genbank.txt | cut -d$'\t' -f20`	
+			if [ -z "$gaftppath" ]
 			then
-				rm -rf $outd/$spn
+				echo "Warning: we can not find accession $ga, it may have been deleted on NCBI server"		
+			else
+				mkdir -p $outd/$spn
+				gan=`basename $gaftppath`
+				echo Now start downloading $gaftppath
+				wget -N -c -o $outd/$spn/"$spn".wget.log -P  $outd/$spn "$gaftppath"/"$gan"_genomic.fna.gz 
+				if [ $? -eq 0 ]
+				then 
+					touch $outd/."$spn".asm.done
+				else
+					echo "Failed to download assembly for $spn"
+				fi
+			fi	
+		fi
+	else
+		echo "User chooses to skip step 1 of downloading the assembly"
+	fi
+	
+	if [ $sstp2 -ne 1 ]
+	then
+		if [ -f "$outd"/.$spn.sra.done ] && [ $stp2 -eq 0 ]
+		then
+			echo "already downloaded sras for $spn, skipped"
+		else
+			echo "Start step 2, downloading SRAs for $spn"
+			outputd=$outd/$spn/SRAs
+			mkdir -p $outputd
+			# be careful with esearch who is reading from stdin
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+			prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
+			if [ $? -eq 0 ]
+			then
+				touch "$outd"/."$spn".sra.done
+			else
+				echo "Failed to download SRAs for $spn" 
+			fi		
+		fi
+	else
+		echo "User chooses to skip step 2 of downloading the sras"
+	fi
+	
+	if [ $sstp3 -ne 1 ]
+	then
+		if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
+		then
+			echo "Already uploaded data for $spn, skip step 3"
+		else
+			echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
+			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
+			if [ $? -eq 0 ] 
+			then
+				touch $outd/.$spn.upload.done
+				if [ $rml -eq 1 ] && [ ! -z $spn ] 
+				then
+					rm -rf $outd/$spn
+				fi
 			fi
 		fi
+	else
+		echo "User chooses to skip step 3 of uploading the datasets"
 	fi
 done < $outd/aid_spn_sid_list
 
