@@ -130,7 +130,7 @@ do
 		outputd=$outd/$spn/SRAs
 		mkdir -p $outputd
 		# be careful with esearch who is reading from stdin
-		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
 		prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
 		if [ $? -eq 0 ]
 		then

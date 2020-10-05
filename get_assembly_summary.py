@@ -197,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument('-s',  action="store", dest = "species", help="species name")
     parser.add_argument('-t',  action="store", dest = "taxid", help="taxonomy ID")
     parser.add_argument('-p',  action="store", dest = "treepath", help="path of rankedlineage.dmp", default="rankedlineage.dmp")
-    parser.add_argument('-n',  action="store", dest = "nrec", help="number of records, -1 for all", default="-1")
+    parser.add_argument('-n',  action="store", dest = "nrec", type=int, help="number of records, -1 for all", default="-1")
     args = parser.parse_args() 
     if args.species is None and args.taxid is None:
         print ("Require a species name or taxonomy ID")
