@@ -67,7 +67,7 @@ def get_ptname(taxid):
     return rv # [rank, sci_name, ptaxid]
 
 
-def parse_asminfo2(url, tax_tree):
+def parse_asminfo2(url, tax_tree, nrec):
 
     res = requests.get(url)
     if res is not None:
@@ -89,9 +89,17 @@ def parse_asminfo2(url, tax_tree):
         onep_step = int(0.01 * n_records)
         if onep_step == 0:
             onep_step += 1
-        print ("There are {} records in total".format(n_records), file=sys.stderr)
+        if nrec == -1:
+            nrec = n_records
+        elif nrec == 0:
+            print ("No records are required, exiting")
+            return 0
+        
+        print ("There are {0} records in total, downloading {1} of them".format(n_records, nrec), file=sys.stderr)
         counter = 0
         for ele in asm_sumy:
+            if counter >= nrec:
+                break   
             attr = []
             if "org" in ele and "tax_id" in ele["org"]:
                 tid = ele["org"]["tax_id"]
@@ -137,6 +145,7 @@ def parse_asminfo2(url, tax_tree):
             counter += 1
             if counter % onep_step == 0:
                 print ("Finished processing {0} records".format(counter, counter/n_records*100), file=sys.stderr)
+        return 0
     else:
         print ("No resource found")
         return 1
@@ -188,6 +197,7 @@ if __name__ == "__main__":
     parser.add_argument('-s',  action="store", dest = "species", help="species name")
     parser.add_argument('-t',  action="store", dest = "taxid", help="taxonomy ID")
     parser.add_argument('-p',  action="store", dest = "treepath", help="path of rankedlineage.dmp", default="rankedlineage.dmp")
+    parser.add_argument('-n',  action="store", dest = "nrec", help="number of records, -1 for all", default="-1")
     args = parser.parse_args() 
     if args.species is None and args.taxid is None:
         print ("Require a species name or taxonomy ID")
@@ -204,4 +214,5 @@ if __name__ == "__main__":
         use_taxid = 0
         url = get_url(use_taxid, args.species) 
     tax_tree = load_tax_tree(args.treepath)
-    parse_asminfo2(url, tax_tree) 
+    nrec = args.nrec
+    parse_asminfo2(url, tax_tree, nrec) 
