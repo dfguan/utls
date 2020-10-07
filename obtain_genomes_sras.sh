@@ -14,7 +14,7 @@ ARGUMENT
 OPTIONS
  -a <accession_ID>      The field number of accession id                   [default: 4] 
  -s <species_name>      The field number of species name                   [default: 5]
- -p <sample_id>         The field number of sample id                      [default: 5]
+ -p <sample_id>         The field number of sample id                      [default: 16]
  -g <asmsum.txt>        Directory of assembly_summary_{genbank,refseq}.txt [default: .] 
  -f <step number>       Three bits to force to run the three steps         [default: 0]
  -S <step number>       Three bits to force to skip the steps              [default: 0]
