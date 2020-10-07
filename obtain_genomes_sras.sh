@@ -66,6 +66,7 @@ shift $((OPTIND-1))
 [[ $# -eq 1 ]] || { printf "$USAGE" >&2 && exit 1; }
 
 asmfl=$1
+mkdir -p $outdir
 outd=`readlink -f $outdir`
 
 stp1=$((fstp & 0x1))

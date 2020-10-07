@@ -61,9 +61,9 @@ fi
 tag=`echo $value | sed 's/ /_/g'` 
 if [ -f .$tag.asminfo.done ]
 then
-	echo "already pull assembly information, skipped"		
+	echo "already pull assembly information, skipped" >&2
 else
-	echo "pull assembly information"
+	echo "pull assembly information" >&2
 	if [ $usetax -eq 1 ]
 	then
 		python3 get_assembly_summary.py -t $value -n $nrec > asminfo.tmp 
@@ -72,10 +72,10 @@ else
 	fi
 	if [ $? -eq 0 ]
 	then
-		echo "assembly infor obtained successfully"
+		echo "assembly infor obtained successfully" >&2
 		touch .$tag.asminfo.done
 	else
-		echo "An error occured, please contact Dengfeng"
+		echo "An error occured, please contact Dengfeng" >&2
 		exit  1
 	fi
 fi
@@ -84,13 +84,14 @@ fi
 
 if [ -f .$tag.srainfo.done ]
 then
-	echo "already obtained sra information, skipped"
+	echo "already obtained sra information, skipped" >&2
 	exit 0
 else
-	echo "pull sra information"
-	cut -f16 -d$'\t' asminfo.tmp > sample_id.tmp
+	echo "pull sra information" >&2
+	cut -f16 -d$'\t' asminfo.tmp | grep ^SAM > sample_id.tmp
 	for samid in `cat sample_id.tmp`
 	do
+		echo "processing $samid" >&2
 		if [ $samid == "NA" ]
 		then
 			echo -e "0\t0" 
@@ -106,13 +107,16 @@ else
 	touch .$tag.srainfo.done
 	if [ -f .$tag.collection.done ]
 	then
-		echo "already collected assembly and sra inforation, skipped"
+		echo "already collected assembly and sra inforation, skipped" >&2
+		exit 0
 	else
 		paste -d$'\t' asminfo.tmp srainfo.tmp > $out
 		if [ $? -eq 0 ]
 		then
+			echo "Finished collecting assembly and sra information successfully" >&2
 			touch .$tag.collection.done 
 			rm -f asminfo.tmp srainfo.tmp sample_id.tmp
+			exit 0
 		fi
 	fi
 fi
