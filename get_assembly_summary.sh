@@ -57,17 +57,50 @@ then
 	fi
 	tar zvxf  new_taxdump.tar.gz rankedlineage.dmp
 fi
+
+echo "pull assembly information"
 if [ $usetax -eq 1 ]
 then
-	python3 get_assembly_summary.py -t $value -n $nrec > $out
+	python3 get_assembly_summary.py -t $value -n $nrec > asminfo.tmp 
 else 
-	python3 get_assembly_summary.py -s "$value" -n $nrec > $out
+	python3 get_assembly_summary.py -s "$value" -n $nrec > asminfo.tmp
 fi
 #cut -f8 $value.asm.tsv | xargs -n1 -I{} grep -w ^{} rankedlineage.dmp | awk -F'|' '{print $4"\t"$5"\t"$6}' | awk '{print $1"\t"$2"\t"$3}' > $value.lin.tsv
 #paste $value.lin.tsv $value.asm.tsv > $out
 if [ $? -eq 0 ]
 then
-	echo "Command runs successfully"
+	echo "assembly infor obtained successfully"
 else
 	echo "An error occured, please contact Dengfeng"
 fi
+
+echo "pull sra information"
+
+cut -f16 -d$'\t' asminfo.tmp > sample_id.tmp
+
+for $samid in `cat sample_id.tmp`
+do
+	if [ $samid == "NA" ]
+	then
+		echo -e "0\t0" 
+	else
+		esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | awk -F, -v sam_id=$samid 'BEGIN{tb=0;cnt=0}{tb+=$5;cnt+=1}END{print cnt"\t"tb}'
+		if [ $? -ne 0 ]
+		then
+			echo "Fail to get sra information for $samid, now exit" >&2
+			exit 1
+		fi
+	fi
+done > srainfo.tmp
+
+paste -d$'\t' asminfo.tmp srainfo.tmp > $out
+if [ $? -eq 0 ]
+then
+	rm -f asminfo.tmp srainfo.tmp sample_id.tmp
+fi
+
+
+
+
+
+
