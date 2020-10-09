@@ -4,7 +4,7 @@
 # Date              : 23.09.2020
 # Last Modified Date: 23.09.2020
 # Last Modified By  : Dengfeng Guan <dfguan9@gmail.com>
-#set -x
+set -x
 USAGE="
 `basename $0` [<OPTIONS>] <ARGUMENT>
 
@@ -33,7 +33,7 @@ sstp=0
 rml=0
 outdir="."
 
-while getopts "a:O:s:g:p:f:rh" OPT "$@"; do
+while getopts "a:s:p:f:S:g:O:rh" OPT "$@"; do
     case $OPT in
         a) afn="$OPTARG"
 			;;
@@ -71,23 +71,22 @@ outd=`readlink -f $outdir`
 
 stp1=$((fstp & 0x1))
 stp2=$((fstp & 0x2))
-stp3=$((fstp & 0x3))
+stp3=$((fstp & 0x4))
 
 sstp1=$((sstp & 0x1))
 sstp2=$((sstp & 0x2))
-sstp3=$((sstp & 0x3))
-
-if [ $stp1 -eq 1 ] && [ $sstp1 -eq 1 ]
+sstp3=$((sstp & 0x4))
+if [ $stp1 -ne 0 ] && [ $sstp1 -ne 0 ]
 then
 	echo "Not allow to force and skip step 1 at the same time, exiting"
 	exit 1
-elif [ $stp2 -eq 1 ] && [ $sstp2 -eq 1 ]
+elif [ $stp2 -ne 0 ] && [ $sstp2 -ne 0 ]
 then
 	echo "Not allow to force and skip step 2 at the same time, exiting"
 	exit 1
-elif [ $stp3 -eq 1 ] && [ $sstp3 -eq 1 ]
+elif [ $stp3 -ne 0 ] && [ $sstp3 -ne 0 ]
 then
-	echo "Not allow to force and skip step 2 at the same time, exiting"
+	echo "Not allow to force and skip step 3 at the same time, exiting"
 	exit 1
 fi
 
@@ -125,7 +124,7 @@ while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
 	stp1_ind=0
-	if [ $sstp1 -ne 1 ]
+	if [ $sstp1 -eq 0 ]
 	then
 		if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
 		then
@@ -157,7 +156,7 @@ do
 	fi
 
 	stp2_ind=0	
-	if [ $sstp2 -ne 1 ]
+	if [ $sstp2 -eq 0 ]
 	then
 		if [ -f "$outd"/.$spn.sra.done ] && [ $stp2 -eq 0 ]
 		then
@@ -187,7 +186,7 @@ do
 		echo "User chooses to skip step 2 of downloading the sras"
 	fi
 	
-	if [ $sstp3 -ne 1 ]
+	if [ $sstp3 -eq 0 ]
 	then
 		if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
 		then
