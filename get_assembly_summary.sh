@@ -89,6 +89,11 @@ then
 else
 	echo "pull sra information" >&2
 	cut -f16 -d$'\t' asminfo.tmp | grep ^SAM > sample_id.tmp
+	if [ $? -ne 0 ]
+	then
+		echo "Fail to get the sample id list"
+		exit 1
+	fi
 	for samid in `cat sample_id.tmp`
 	do
 		echo "processing $samid" >&2
