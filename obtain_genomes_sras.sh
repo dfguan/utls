@@ -124,6 +124,7 @@ cut -f$afn,$sfn,$pfn -d$'\t'  $asmfl | grep ^GC | sed 's/ /_/g' > $outd/aid_spn_
 while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
+	stp1_ind=0
 	if [ $sstp1 -ne 1 ]
 	then
 		if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
@@ -147,13 +148,15 @@ do
 					touch $outd/."$spn".asm.done
 				else
 					echo "Failed to download assembly for $spn"
+					stp1_ind=1
 				fi
 			fi	
 		fi
 	else
 		echo "User chooses to skip step 1 of downloading the assembly"
 	fi
-	
+
+	stp2_ind=0	
 	if [ $sstp2 -ne 1 ]
 	then
 		if [ -f "$outd"/.$spn.sra.done ] && [ $stp2 -eq 0 ]
@@ -173,6 +176,7 @@ do
 					touch "$outd"/."$spn".sra.done
 				else
 					echo "Failed to download SRAs for $spn" 
+					stp2_ind=1
 				fi	
 			else
 				echo "$outputd/sralist is empty, will do nothing"	
@@ -194,7 +198,7 @@ do
 			if [ $? -eq 0 ] 
 			then
 				touch $outd/.$spn.upload.done
-				if [ $rml -eq 1 ] && [ ! -z $spn ] 
+				if [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
 				then
 					rm -rf $outd/$spn
 				fi
