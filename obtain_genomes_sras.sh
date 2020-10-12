@@ -124,6 +124,7 @@ while read -r ga spn samid
 do 
 	#echo $ga $spn $samid
 	stp1_ind=0
+	downl=0
 	if [ $sstp1 -eq 0 ]
 	then
 		if [ -f "$outd"/."$spn".asm.done ] && [ $stp1 -eq 0 ]
@@ -145,6 +146,7 @@ do
 				if [ $? -eq 0 ]
 				then 
 					touch $outd/."$spn".asm.done
+					downl=1
 				else
 					echo "Failed to download assembly for $spn"
 					stp1_ind=1
@@ -173,6 +175,7 @@ do
 				if [ $? -eq 0 ]
 				then
 					touch "$outd"/."$spn".sra.done
+					downl=1
 				else
 					echo "Failed to download SRAs for $spn" 
 					stp2_ind=1
@@ -185,24 +188,26 @@ do
 	else
 		echo "User chooses to skip step 2 of downloading the sras"
 	fi
-	
+	# unless user choose to skip step 3 otherwise if some data is downloaded, we need to upload it to ther server 	
 	if [ $sstp3 -eq 0 ]
 	then
-		if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
+		#if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
+		#then
+			#echo "Already uploaded data for $spn, skip step 3"
+		#else
+		if [ $downl -eq 1 ]
 		then
-			echo "Already uploaded data for $spn, skip step 3"
-		else
 			echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
 			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
-			if [ $? -eq 0 ] 
+			if [ $? -eq 0 ] && [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
+			#then
+				#touch $outd/.$spn.upload.done
 			then
-				touch $outd/.$spn.upload.done
-				if [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
-				then
-					rm -rf $outd/$spn
-				fi
+				rm -rf $outd/$spn
 			fi
+			#fi
 		fi
+		#fi
 	else
 		echo "User chooses to skip step 3 of uploading the datasets"
 	fi
