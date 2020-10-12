@@ -4,7 +4,7 @@
 # Date              : 23.09.2020
 # Last Modified Date: 23.09.2020
 # Last Modified By  : Dengfeng Guan <dfguan9@gmail.com>
-set -x
+#set -x
 USAGE="
 `basename $0` [<OPTIONS>] <ARGUMENT>
 
