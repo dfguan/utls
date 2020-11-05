@@ -99,9 +99,9 @@ else
 		echo "processing $samid" >&2
 		if [ $samid == "NA" ]
 		then
-			echo -e "0\t0" 
+			echo -e "0\t0\t0" 
 		else
-			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | awk -F, -v sam_id=$samid 'BEGIN{tb=0;cnt=0}{tb+=$5;cnt+=1}END{print cnt"\t"tb}'
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | awk -F, -v sam_id=$samid 'BEGIN{tb=0;cnt=0;fs=0}{tb+=$5;fs+=$8;cnt+=1}END{print cnt"\t"fs"\t"tb}'
 			if [ $? -ne 0 ]
 			then
 				echo "Fail to get sra information for $samid, now exit" >&2
