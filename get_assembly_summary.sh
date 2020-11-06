@@ -13,10 +13,14 @@ OPTIONS
  -t <taxids>            obtain the assembly summary for the taxid given.
  -s <species_name>      obtain the assembly summary for the species given.
  -n <number_of_records> obtain n records [default: -1 (all records)].
+ -f                     force to pull the assembly information.
+ -k                     keep the temporary files (for debug purpose only, default: False).
  -v                     Verbose mode
 "
 nrec=-1
-while getopts "t:s:n:" OPT "$@"; do
+force=0
+keep=0
+while getopts "t:s:n:fk" OPT "$@"; do
     case $OPT in
         t) taxid="$OPTARG"
 		   value=$taxid
@@ -29,6 +33,10 @@ while getopts "t:s:n:" OPT "$@"; do
 		   exturl="/assembly_descriptors/organism/${species}"
 			;;
 		n) nrec="$OPTARG"
+			;;
+		f) force=1
+			;;
+		k) keep=1
 			;;
         \?) echo "Invalid option: -$OPTARG" >&2 
             exit 1 
@@ -59,16 +67,16 @@ then
 fi
 
 tag=`echo $value | sed 's/ /_/g'` 
-if [ -f .$tag.asminfo.done ]
+if [ -f .$tag.asminfo.done ] && [ $force -ne 1 ]
 then
 	echo "already pull assembly information, skipped" >&2
 else
 	echo "pull assembly information" >&2
 	if [ $usetax -eq 1 ]
 	then
-		python3 get_assembly_summary.py -t $value -n $nrec > asminfo.tmp 
+		python3 get_assembly_summary.py -t $value -n $nrec > $tag.asminfo.tmp 
 	else 
-		python3 get_assembly_summary.py -s "$value" -n $nrec > asminfo.tmp
+		python3 get_assembly_summary.py -s "$value" -n $nrec > $tag.asminfo.tmp
 	fi
 	if [ $? -eq 0 ]
 	then
@@ -82,19 +90,20 @@ fi
 #cut -f8 $value.asm.tsv | xargs -n1 -I{} grep -w ^{} rankedlineage.dmp | awk -F'|' '{print $4"\t"$5"\t"$6}' | awk '{print $1"\t"$2"\t"$3}' > $value.lin.tsv
 #paste $value.lin.tsv $value.asm.tsv > $out
 
-if [ -f .$tag.srainfo.done ]
+if [ -f .$tag.srainfo.done ] && [ $force -ne 1 ]
 then
 	echo "already obtained sra information, skipped" >&2
 	exit 0
 else
 	echo "pull sra information" >&2
-	cut -f16 -d$'\t' asminfo.tmp | grep ^SAM > sample_id.tmp
+	cut -f16 -d$'\t' $tag.asminfo.tmp | grep ^SAM > $tag.sample_id.tmp
 	if [ $? -ne 0 ]
 	then
 		echo "Fail to get the sample id list"
 		exit 1
 	fi
-	for samid in `cat sample_id.tmp`
+	echo -e "#SRAs\tFS\tTB"  > $tag.srainfo.tmp
+	for samid in `cat $tag.sample_id.tmp`
 	do
 		echo "processing $samid" >&2
 		if [ $samid == "NA" ]
@@ -108,19 +117,19 @@ else
 				exit 1
 			fi
 		fi
-	done > srainfo.tmp
+	done >> $tag.srainfo.tmp
 	touch .$tag.srainfo.done
-	if [ -f .$tag.collection.done ]
+	if [ -f .$tag.collection.done ] && [ $force -ne 1 ]
 	then
 		echo "already collected assembly and sra inforation, skipped" >&2
 		exit 0
 	else
-		paste -d$'\t' asminfo.tmp srainfo.tmp > $out
+		paste -d$'\t' $tag.asminfo.tmp $tag.srainfo.tmp > $out
 		if [ $? -eq 0 ]
 		then
 			echo "Finished collecting assembly and sra information successfully" >&2
 			touch .$tag.collection.done 
-			rm -f asminfo.tmp srainfo.tmp sample_id.tmp
+			[ $keep -ne 1 ] && rm -f $tag.asminfo.tmp $tag.srainfo.tmp $tag.sample_id.tmp
 			exit 0
 		fi
 	fi
