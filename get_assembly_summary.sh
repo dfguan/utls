@@ -96,7 +96,7 @@ then
 	exit 0
 else
 	echo "pull sra information" >&2
-	cut -f16 -d$'\t' $tag.asminfo.tmp | grep ^SAM > $tag.sample_id.tmp
+	cut -f16 -d$'\t' $tag.asminfo.tmp | grep -v ^Sample > $tag.sample_id.tmp
 	if [ $? -ne 0 ]
 	then
 		echo "Fail to get the sample id list"
