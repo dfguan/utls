@@ -169,13 +169,15 @@ do
 			echo "already downloaded sras for $spn, skipped"
 		else
 			echo "Start step 2, downloading SRAs for $spn"
-			outputd=$outd/$spn/SRAs
-			mkdir -p $outputd
+			sra_outd=$outd/$spn/SRAs
+			mkdir -p $sra_outd
 			# be careful with esearch who is reading from stdin
-			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
-			if [ -s $outputd/sralist ]
+			#esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, '($13=="WGS" || $13 == "WCS" || $13 == "WGA" || $13 == "Synthetic-Long-Read" ) && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA" {print $1}' > $sra_outd/sralist
+			#| grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+			if [ -s $sra_outd/sralist ]
 			then
-				prefetch -C yes -X 1000000000 -O $outputd  --option-file $outputd/sralist > $outputd/prefetch.log.o 2>$outputd/prefetch.log.e
+				prefetch -C yes -X 1000000000 -O $sra_outd  --option-file $sra_outd/sralist > $sra_outd/prefetch.log.o 2>$sra_outd/prefetch.log.e
 				if [ $? -eq 0 ]
 				then
 					touch "$outd"/."$spn".sra.done
@@ -185,33 +187,30 @@ do
 					stp2_ind=1
 				fi	
 			else
-				echo "$outputd/sralist is empty, will do nothing"	
+				echo "$sra_outd/sralist is empty, will do nothing"	
 				touch "$outd"/."$spn".sra.done
 			fi	
 		fi
 	else
 		echo "User chooses to skip step 2 of downloading the sras"
 	fi
-	# unless user choose to skip step 3 otherwise if some data is downloaded, we need to upload it to ther server 	
+	# unless user choose to skip step 3 otherwise if some data is downloaded, or forced upload, or data is not uploaded, we need to upload it to ther server 	
 	if [ $sstp3 -eq 0 ]
 	then
 		#if [ -f "$outd"/.$spn.upload.done ] && [ $stp3 -eq 0 ]
 		#then
 			#echo "Already uploaded data for $spn, skip step 3"
 		#else
-		if [ $downl -eq 1 ]
+		if [ $downl -eq 1 ] || [ $stp3 -ne 0 ] || [ ! -f $outd/.$spn.upload.done ]
 		then
 			echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
 			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/$cluster_dir 	
 			if [ $? -eq 0 ] && [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
-			#then
-				#touch $outd/.$spn.upload.done
 			then
+				touch $outd/.$spn.upload.done
 				rm -rf $outd/$spn
 			fi
-			#fi
 		fi
-		#fi
 	else
 		echo "User chooses to skip step 3 of uploading the datasets"
 	fi
