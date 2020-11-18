@@ -19,6 +19,7 @@ OPTIONS
  -f <step number>       Three bits to force to run the three steps         [default: 0]
  -S <step number>       Three bits to force to skip the steps              [default: 0]
  -O <output_directory>  Directory of output assemblies                     [default: .] 
+ -u <cluster_directory> Directory of output assemblies                     [default: genomic_diveristy] 
  -r                     Remove directory for the species                   [default: FALSE]
  -v                     Verbose mode
 "
@@ -32,8 +33,9 @@ fstp=0
 sstp=0
 rml=0
 outdir="."
+cluster_dir="genomic_diversity"
 
-while getopts "a:s:p:f:S:g:O:rh" OPT "$@"; do
+while getopts "a:s:p:f:S:g:O:ru:h" OPT "$@"; do
     case $OPT in
         a) afn="$OPTARG"
 			;;
@@ -50,6 +52,8 @@ while getopts "a:s:p:f:S:g:O:rh" OPT "$@"; do
         g) asmdir="$OPTARG"
 			;;
         h) header=0
+			;;
+        u) cluster_dir="$OPTARG"
 			;;
         O) outdir="$OPTARG"
 			;;
@@ -198,7 +202,7 @@ do
 		if [ $downl -eq 1 ]
 		then
 			echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
-			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/genomic_diversity 	
+			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/$cluster_dir 	
 			if [ $? -eq 0 ] && [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
 			#then
 				#touch $outd/.$spn.upload.done
