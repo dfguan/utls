@@ -205,11 +205,19 @@ do
 		then
 			echo "Start step 3, uploading data for $spn to Huawei Cloud OBS"
 			obsutil cp -vmd5 -u -r -f $outd/$spn obs://nextomics-customer/WHWLZ-201906006A/$cluster_dir 	
-			if [ $? -eq 0 ] && [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
+			if [ $? -eq 0 ]
 			then
+				echo "Uploaded the data for $spn successfully"
 				touch $outd/.$spn.upload.done
-				rm -rf $outd/$spn
+				if [ $rml -eq 1 ] && [ ! -z $spn ] && [ $stp1_ind -eq 0 ] && [ $stp2_ind -eq 0 ]
+				then
+					rm -rf $outd/$spn
+				fi
+			else
+				echo "Failed to upload the data to Huawei Cloud OBS for $spn, pls check your network connection"
 			fi
+		else
+			echo "Already uploaded the data for $spn, skipped"
 		fi
 	else
 		echo "User chooses to skip step 3 of uploading the datasets"
