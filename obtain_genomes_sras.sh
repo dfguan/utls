@@ -174,22 +174,27 @@ do
 			# be careful with esearch who is reading from stdin
 			#esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
 			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, '($13=="WGS" || $13 == "WCS" || $13 == "WGA" || $13 == "Synthetic-Long-Read" ) && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA" {print $1}' > $sra_outd/sralist
-			#| grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
-			if [ -s $sra_outd/sralist ]
+			if [ ${PIPESTATUS[0]} -eq 0 ] && [ ${PIPESTATUS[1]} -eq 0 ] 
 			then
-				prefetch -C yes -X 1000000000 -O $sra_outd  --option-file $sra_outd/sralist > $sra_outd/prefetch.log.o 2>$sra_outd/prefetch.log.e
-				if [ $? -eq 0 ]
+			#| grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
+				if [ -s $sra_outd/sralist ]
 				then
-					touch "$outd"/."$spn".sra.done
-					downl=1
+					prefetch -C yes -X 1000000000 -O $sra_outd  --option-file $sra_outd/sralist > $sra_outd/prefetch.log.o 2>$sra_outd/prefetch.log.e
+					if [ $? -eq 0 ]
+					then
+						touch "$outd"/."$spn".sra.done
+						downl=1
+					else
+						echo "Failed to download SRAs for $spn" 
+						stp2_ind=1
+					fi	
 				else
-					echo "Failed to download SRAs for $spn" 
-					stp2_ind=1
+					echo "$sra_outd/sralist is empty, will do nothing"	
+					touch "$outd"/."$spn".sra.done
 				fi	
 			else
-				echo "$sra_outd/sralist is empty, will do nothing"	
-				touch "$outd"/."$spn".sra.done
-			fi	
+				echo "Failed to obtain sralist for $spn, please check your network connection"	
+			fi
 		fi
 	else
 		echo "User chooses to skip step 2 of downloading the sras"
