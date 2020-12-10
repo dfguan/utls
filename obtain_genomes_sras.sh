@@ -173,8 +173,9 @@ do
 			mkdir -p $sra_outd
 			# be careful with esearch who is reading from stdin
 			#esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
-			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, '($13=="WGS" || $13 == "WCS" || $13 == "WGA" || $13 == "Synthetic-Long-Read" ) && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA" {print $1}' > $sra_outd/sralist
-			if [ ${PIPESTATUS[0]} -eq 0 ] && [ ${PIPESTATUS[1]} -eq 0 ] 
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, '$13=="WGS" && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA" {print $1}' > $sra_outd/sralist
+			extcode=( ${PIPESTATUS[@]} )
+			if [ ${extcode[0]} -eq 0 ] && [ ${extcode[1]} -eq 0 ] 
 			then
 			#| grep WGS | grep GENOMIC | grep ILLUMINA | cut -d ',' -f1 | grep [ES]RR  > $outputd/sralist  
 				if [ -s $sra_outd/sralist ]

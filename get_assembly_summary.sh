@@ -110,8 +110,10 @@ else
 		then
 			echo -e "0\t0\t0" 
 		else
-			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | grep WGS | grep GENOMIC | grep ILLUMINA | awk -F, -v sam_id=$samid 'BEGIN{tb=0;cnt=0;fs=0}{tb+=$5;fs+=$8;cnt+=1}END{print cnt"\t"fs"\t"tb}'
-			if [ $? -ne 0 ]
+			#esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, -v sam_id=$samid  '{if (( $13=="WGS" || $13 == "WCS" || $13 == "WGA" || $13 == "Synthetic-Long-Read" ) && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA"){ tb+=$5;fs+=$8;cnt+=1;}}END{print cnt"\t"fs"\t"tb}'
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, -v sam_id=$samid  '{if ($13=="WGS" && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA"){ tb+=$5;fs+=$8;cnt+=1;}}END{print cnt"\t"fs"\t"tb}'
+			extcode=( ${PIPESTATUS[@]} )
+			if [ ${extcode[0]} -ne 0 ] || [ ${extcode[1]} -ne 0 ] 
 			then
 				echo "Fail to get sra information for $samid, now exit" >&2
 				exit 1
