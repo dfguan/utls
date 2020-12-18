@@ -111,7 +111,7 @@ else
 			echo -e "0\t0\t0" 
 		else
 			#esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, -v sam_id=$samid  '{if (( $13=="WGS" || $13 == "WCS" || $13 == "WGA" || $13 == "Synthetic-Long-Read" ) && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA"){ tb+=$5;fs+=$8;cnt+=1;}}END{print cnt"\t"fs"\t"tb}'
-			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, -v sam_id=$samid  '{if ($13=="WGS" && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA"){ tb+=$5;fs+=$8;cnt+=1;}}END{print cnt"\t"fs"\t"tb}'
+			esearch -db sra -query $samid < /dev/null | efetch -format runinfo | awk -F, -v sam_id=$samid  '{if (($13=="WGS" || $13 == "WGA") && $14=="RANDOM" && $15 == "GENOMIC" && $19== "ILLUMINA"){ tb+=$5;fs+=$8;cnt+=1;}}END{print cnt"\t"fs"\t"tb}'
 			extcode=( ${PIPESTATUS[@]} )
 			if [ ${extcode[0]} -ne 0 ] || [ ${extcode[1]} -ne 0 ] 
 			then
