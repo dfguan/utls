@@ -31,7 +31,7 @@ int comp(char *fa)
 	char toint[256] = {0};
 	toint['a'] = 1, toint['c'] = 2, toint['g'] = 3, toint['t'] = 4, toint['n'] = 5;
 	toint['A'] = 6, toint['C'] = 7, toint['G'] = 8, toint['T'] = 9, toint['N'] = 10;
-	char toDNA[] = "acgtnACGTN";
+	char toDNA[] = "acgtnACGTNO";
 	/*long cnt[11] = {0};*/
 	int n = 0, slen = 0, qlen = 0;
 	fp = gzopen(fa, "r");
@@ -46,9 +46,9 @@ int comp(char *fa)
 	while (kseq_read(seq) >= 0) {
 		long tmpcnt[11] = {0};
 		for (i = 0; i < seq->seq.l; ++i) {
-			int z = toint[seq->seq.s[i]] - 1;
-			if (z) ++tmpcnt[z];
-			else ++tmpcnt[10];
+			int z = toint[seq->seq.s[i]];
+			if (z) ++tmpcnt[z-1];
+			else ++tmpcnt[9];
 		}
 		++n, slen += seq->seq.l;
 		fprintf(stdout, "%s", seq->name.s);
